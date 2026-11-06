@@ -52,8 +52,11 @@ abstract final class AppConfig {
 
   /// Must match the callback URL registered for the application, and the scheme in
   /// android/app/build.gradle.kts (appAuthRedirectScheme) and ios/Runner/Info.plist.
-  static const ssoRedirectScheme = 'pockethangar';
-  static const ssoRedirectUrl = '$ssoRedirectScheme://sso-callback';
+  /// developers.eveonline.com only accepts https, http for localhost, and custom schemes that
+  /// start with "eveauth" (then lower-case letters, digits, "+", "." or "-", ending in a letter
+  /// or digit).
+  static const ssoRedirectScheme = 'eveauth-pockethangar';
+  static const ssoRedirectUrl = '$ssoRedirectScheme://callback';
 
   static const ssoScopes = <String>[
     'esi-skills.read_skills.v1',

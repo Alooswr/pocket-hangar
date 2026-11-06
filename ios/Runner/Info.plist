@@ -28,7 +28,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>pockethangar</string>
+				<string>eveauth-pockethangar</string>
 			</array>
 		</dict>
 	</array>

@@ -34,8 +34,9 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
-        // EVE SSO redirects to pockethangar://sso-callback (flutter_appauth).
-        manifestPlaceholders += mapOf("appAuthRedirectScheme" to "pockethangar")
+        // EVE SSO redirects to eveauth-pockethangar://callback (flutter_appauth). The scheme must
+        // match AppConfig.ssoRedirectScheme and ios/Runner/Info.plist.
+        manifestPlaceholders += mapOf("appAuthRedirectScheme" to "eveauth-pockethangar")
     }
 
     signingConfigs {

@@ -6,7 +6,7 @@ a device, an account or a published release.
 Status on 2026-11-06, SDE build 3670638:
 
 - `flutter analyze`: no issues.
-- `flutter test`: 107 passed, 2 skipped (search speed, runs with `SDE_DB` set; the published
+- `flutter test`: 108 passed, 2 skipped (search speed, runs with `SDE_DB` set; the published
   release, runs with `LIVE_SDE=1`).
 - `pipeline: python -m pytest`: 28 passed, real-data tests included.
 - GitHub Actions on `a90b6a4`, the first push: every job passed (analyze, the same 107 tests,
@@ -74,9 +74,13 @@ Legend: **[x]** verified (test or local run) · **[ ]** open, with the reason.
 - [x] Finish time per skill and for the whole queue. A paused queue gets local estimates;
   skills that finished since ESI cached the queue are dropped.
   - Tests: `skills_test.dart`.
+- [x] The callback `eveauth-pockethangar://callback` follows the developer portal's rule for
+  custom schemes (they must start with `eveauth`), and the scheme is the same in the app, the
+  Android manifest and the iOS URL types.
+  - Tests: `auth_test.dart` callback.
 - [ ] Real sign-in on a phone. This needs the application registered at
-  developers.eveonline.com (callback `pockethangar://sso-callback`, 12 scopes) and its client
-  ID.
+  developers.eveonline.com (callback `eveauth-pockethangar://callback`, 12 scopes) and its
+  client ID.
 
 ## M2: market
 

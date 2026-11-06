@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jose/jose.dart';
+import 'package:pocket_hangar/app/config.dart';
 import 'package:pocket_hangar/core/auth/jwt_verifier.dart';
 import 'package:pocket_hangar/core/log.dart';
 
@@ -111,6 +114,27 @@ void main() {
 
     test('ordinary text is unchanged', () {
       expect(redact('ESI GET /markets/10000002/orders 200'), 'ESI GET /markets/10000002/orders 200');
+    });
+  });
+
+  group('callback', () {
+    test('the scheme passes the developer portal rule and is the same on Android and iOS', () {
+      // developers.eveonline.com accepts custom schemes that start with "eveauth", continue with
+      // lower-case letters, digits, "+", "." or "-", and end with a letter or digit.
+      expect(AppConfig.ssoRedirectScheme, matches(RegExp(r'^eveauth([a-z0-9+.-]*[a-z0-9])?$')));
+      expect(AppConfig.ssoRedirectUrl, startsWith('${AppConfig.ssoRedirectScheme}://'));
+
+      final gradle = File('android/app/build.gradle.kts').readAsStringSync();
+      expect(gradle, contains('"appAuthRedirectScheme" to "${AppConfig.ssoRedirectScheme}"'));
+
+      final plist = File('ios/Runner/Info.plist').readAsStringSync();
+      final schemes = RegExp(r'<key>CFBundleURLSchemes</key>\s*<array>(.*?)</array>', dotAll: true)
+          .firstMatch(plist)!
+          .group(1)!;
+      expect(
+        [for (final m in RegExp(r'<string>([^<]*)</string>').allMatches(schemes)) m.group(1)],
+        [AppConfig.ssoRedirectScheme],
+      );
     });
   });
 }

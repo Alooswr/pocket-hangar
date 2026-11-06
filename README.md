@@ -69,7 +69,8 @@ bundled JDK works), and Xcode on a Mac for iOS.
 
 1. Register an application at <https://developers.eveonline.com/applications>:
    - Connection type: Authentication & API Access
-   - Callback URL: `pockethangar://sso-callback`
+   - Callback URL: `eveauth-pockethangar://callback` (the portal only accepts custom schemes
+     that start with `eveauth`)
    - Scopes:
      `esi-skills.read_skills.v1 esi-skills.read_skillqueue.v1 esi-clones.read_clones.v1
      esi-clones.read_implants.v1 esi-assets.read_assets.v1 esi-location.read_location.v1
