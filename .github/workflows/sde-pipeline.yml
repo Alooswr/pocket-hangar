@@ -1,0 +1,110 @@
+name: SDE pipeline
+
+# Once a day: compare the SDE build number with the last published manifest. Only when it changed
+# (or when run by hand with "force"), download the SDE, build the SQLite, test it and publish:
+#   release sde-<build>   eve-sde-<build>.sqlite.gz + manifest.json   (one per SDE build, kept)
+#   release sde-latest    manifest.json                               (rolling pointer the app reads)
+# Both are created with --latest=false so "latest release" stays reserved for app versions.
+
+on:
+  schedule:
+    - cron: "17 13 * * *" # SDE builds usually appear about an hour after the 11:00 UTC downtime
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild even if the SDE build number did not change
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sde-pipeline
+  cancel-in-progress: false
+
+env:
+  MANIFEST_TAG: sde-latest
+  SDE_USER_AGENT: PocketHangar-SDE-Pipeline/1.0 (+https://github.com/${{ github.repository }})
+
+jobs:
+  sde:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: pipeline
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: python -m pip install -r requirements-dev.txt
+
+      - name: Unit tests (mini SDE, no network)
+        run: python -m pytest -q tests/test_pipeline_unit.py
+
+      - name: Compare build numbers
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FORCE: ${{ inputs.force && '--force' || '' }}
+        run: |
+          gh release download "$MANIFEST_TAG" --pattern manifest.json --dir prev --repo "$GITHUB_REPOSITORY" \
+            || echo "no previous manifest, first build"
+          python -m sde_pipeline check --previous prev/manifest.json $FORCE --github-output
+
+      - name: Download SDE
+        if: steps.check.outputs.changed == 'true'
+        run: python -m sde_pipeline download --build "${{ steps.check.outputs.build }}" --dest work
+
+      - name: Build database
+        if: steps.check.outputs.changed == 'true'
+        run: >
+          python -m sde_pipeline build
+          --zip "work/eve-online-static-data-${{ steps.check.outputs.build }}-jsonl.zip"
+          --out-dir dist
+          --url-template "https://github.com/${{ github.repository }}/releases/download/sde-{build}/{file}"
+
+      - name: Test the built database against the SDE
+        if: steps.check.outputs.changed == 'true'
+        env:
+          SDE_ZIP: work/eve-online-static-data-${{ steps.check.outputs.build }}-jsonl.zip
+          SDE_DB: dist/eve-sde-${{ steps.check.outputs.build }}.sqlite
+        run: python -m pytest -q tests
+
+      - name: Publish release
+        if: steps.check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD: ${{ steps.check.outputs.build }}
+          RELEASE_DATE: ${{ steps.check.outputs.release_date }}
+        run: |
+          tag="sde-$BUILD"
+          asset="dist/eve-sde-$BUILD.sqlite.gz"
+          notes="EVE static data build $BUILD (released by CCP $RELEASE_DATE), trimmed for Pocket Hangar.
+          EVE data and images are property of CCP hf., used under the CCP Developer License Agreement."
+          if gh release view "$tag" > /dev/null 2>&1; then
+            gh release upload "$tag" "$asset" dist/manifest.json --clobber
+          else
+            gh release create "$tag" "$asset" dist/manifest.json --title "SDE $BUILD" --notes "$notes" --latest=false
+          fi
+          if gh release view "$MANIFEST_TAG" > /dev/null 2>&1; then
+            gh release upload "$MANIFEST_TAG" dist/manifest.json --clobber
+          else
+            gh release create "$MANIFEST_TAG" dist/manifest.json --title "Latest SDE manifest" \
+              --notes "Rolling pointer to the newest SDE database. The app reads manifest.json from here." --latest=false
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### SDE pipeline"
+            echo "- latest build: ${{ steps.check.outputs.build }}"
+            echo "- previous build: ${{ steps.check.outputs.previous }}"
+            echo "- changed: ${{ steps.check.outputs.changed }}"
+          } >> "$GITHUB_STEP_SUMMARY"
