@@ -4,7 +4,8 @@ name: SDE pipeline
 # (or when run by hand with "force"), download the SDE, build the SQLite, test it and publish:
 #   release sde-<build>   eve-sde-<build>.sqlite.gz + manifest.json   (one per SDE build, kept)
 #   release sde-latest    manifest.json                               (rolling pointer the app reads)
-# Both are created with --latest=false so "latest release" stays reserved for app versions.
+# Both are created with --latest=false, so they never take GitHub's "latest release" label from an
+# app version. Until the first app version is released, GitHub shows the newest SDE release as latest.
 
 on:
   schedule:

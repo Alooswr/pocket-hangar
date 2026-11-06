@@ -6,8 +6,11 @@ a device, an account or a published release.
 Status on 2026-11-06, SDE build 3670638:
 
 - `flutter analyze`: no issues.
-- `flutter test`: 107 passed, 1 skipped (search speed, runs with `SDE_DB` set).
+- `flutter test`: 107 passed, 2 skipped (search speed, runs with `SDE_DB` set; the published
+  release, runs with `LIVE_SDE=1`).
 - `pipeline: python -m pytest`: 28 passed, real-data tests included.
+- GitHub Actions on `a90b6a4`, the first push: every job passed (analyze, the same 107 tests,
+  pipeline unit tests with the real-data ones skipped, Android APK, unsigned iOS build).
 
 Legend: **[x]** verified (test or local run) · **[ ]** open, with the reason.
 
@@ -37,8 +40,15 @@ Legend: **[x]** verified (test or local run) · **[ ]** open, with the reason.
   `schemaVersion, compression`.
   - Tests: `test_pipeline_unit.py::test_manifest_hash_and_size_match_the_gz`.
 - [x] Local run: the database is 9.3 MB (3.0 MB gzipped) and builds in about 5 s.
-- [ ] The first GitHub release `sde-3670638` and the rolling `sde-latest` manifest. The
-  repository has to be created and pushed first; the workflow then publishes both.
+- [x] The first GitHub releases, `sde-3670638` and the rolling `sde-latest` manifest, published by
+  the `SDE pipeline` workflow (run by hand on 2026-11-06, then daily at 13:17 UTC). On the runner
+  the 28 pipeline tests passed against the real SDE before anything was published.
+  - The app's installer fetched the manifest from its built-in URL, downloaded the 3.0 MB
+    database, checked the SHA-256, installed it, and found the Rifter by `裂谷` and by `rfiter`.
+  - Tests: `live_release_test.dart` (runs with `LIVE_SDE=1`).
+  - Until the first app version is released, GitHub labels `sde-latest` as the repository's
+    latest release. The app's update check reads the whole release list and only counts `vX.Y.Z`
+    tags, so it is not affected.
 
 ## M1: sign-in, several characters, skill queue
 
@@ -184,7 +194,8 @@ Legend: **[x]** verified (test or local run) · **[ ]** open, with the reason.
   - the schema version is checked;
   - the build number must match;
   - the database is swapped in atomically, and a failure leaves the installed data alone.
-  - Tests: `updates_test.dart`.
+  - Tests: `updates_test.dart`; `live_release_test.dart` runs the same installer against the
+    published release.
 - [x] Android update check: the newest `vX.Y.Z` GitHub release with an APK. Data releases
   (`sde-<build>`) in the same repository are ignored.
   - Tests: `updates_test.dart`.
@@ -207,8 +218,9 @@ Legend: **[x]** verified (test or local run) · **[ ]** open, with the reason.
     - the chart's axis-end labels overlapped the grid labels.
   - Not checked on the emulator: Chinese input (adb cannot type it; covered by tests), sign-in
     and the character tabs (no client ID yet).
-- [ ] Unsigned iOS build. The `ios` job in `.github/workflows/app-ci.yml` runs it on macOS once
-  the repository is on GitHub.
+- [x] Unsigned iOS build: the `ios` job in `.github/workflows/app-ci.yml` built `Runner.app` on
+  macOS in the first CI run. The Android job built the release APK there too; both are kept as
+  workflow artifacts for 90 days.
 - [ ] TestFlight needs an Apple Developer account, signing, and an App Store Connect entry.
 - [ ] Release signing key for Android: create it and keep it safe. Without the same key,
   updates cannot be installed over earlier builds.
